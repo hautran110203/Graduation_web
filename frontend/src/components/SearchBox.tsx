@@ -1,14 +1,22 @@
-import Form from 'react-bootstrap/Form';
-import Button from 'react-bootstrap/Button';
-import Stack from 'react-bootstrap/Stack';
+import React from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
-function SearchBox() {
+
+const SearchBox: React.FC = () => {
   return (
-    <Stack direction="horizontal" gap={2}>
-      <Form.Control className="w-50" placeholder="Add your item here..." />
-      <Button variant="link " ><MagnifyingGlass size={32} color="#2461f0" /></Button>
-    </Stack>
+    <div className="flex items-center max-w-md mx-auto w-full">
+      <input
+        type="text"
+        placeholder="🔍 Tìm kiếm sự kiện..."
+        className="flex-grow px-4 py-2 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-md transition"
+      >
+        <MagnifyingGlass size={20} />
+      </button>
+    </div>
   );
-}
+};
 
 export default SearchBox;

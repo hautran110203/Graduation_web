@@ -1,21 +1,27 @@
 import React from 'react';
-import { Container, Row, Col, Button } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
-const HeroSection: React.FC = () => (
-  <section className="bg-dark text-light py-5">
-    <Container>
-      <Row className="align-items-center">
-        <Col md={6}>
-          <h2>Bạn sắp tốt nghiệp? Đừng lo, đã có chúng tôi!</h2>
-          <p>Theo dõi và hoàn tất mọi bước tốt nghiệp nhanh chóng, tiện lợi.</p>
-          <Button variant="primary" className="me-2">Bắt đầu ngay</Button>
-        </Col>
-        <Col md={6}>
-          <div style={{ backgroundColor: '#6c757d', height: '300px' }} className="rounded w-100" />
-        </Col>
-      </Row>
-    </Container>
-  </section>
-);
+const HeroSection: React.FC = () => {
+  return (
+    <section className="pt-20 flex items-center bg-[url('/HeroImg.svg')] bg-no-repeat bg-[length:100%] bg-right min-h-[600px]">
+    <div className="flex flex-col md:flex-row items-center justify-between w-full px-10 max-w-7xl mx-auto">
+        <div className="md:w-1/2">
+          <h1 className="text-4xl font-light !text-blue-700">Nền tảng đăng ký tốt nghiệp trực tuyến</h1>
+          <h3 className="text-xl font-bold !text-yellow-400 mt-2 mb-4">
+            Nhanh chóng, minh bạch và hiệu quả
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Đơn giản hóa quy trình tốt nghiệp, giải pháp công nghệ giúp sinh viên chủ động hoàn tất thủ tục tốt nghiệp.
+          </p>
+          <Link to="/events">
+          <button className="px-6 py-3 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition">
+            Tham gia ngay
+          </button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 export default HeroSection;

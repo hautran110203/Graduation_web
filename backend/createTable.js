@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk');
 AWS.config.update({ region: 'ap-southeast-1' });
+const bcrypt = require('bcryptjs'); 
 
 const dynamodb = new AWS.DynamoDB();
 
@@ -91,12 +92,36 @@ const createTableEvents ={
     BillingMode: "PAY_PER_REQUEST"
 }
 
+const createTableGraduation_approved={
+  TableName: 'graduation_approved',
+  KeySchema: [
+    {AttributeName: 'user_code', KeyType: 'HASH'},
+    {AttributeName: 'graduation_id', KeyType: 'RANGE'}
+  ],
+  AttributeDefinitions:[
+    {AttributeName: 'user_code', AttributeType: 'S'},
+    {AttributeName: 'graduation_id', AttributeType: 'N'}
+  ],
+    BillingMode: "PAY_PER_REQUEST"
+}
 
+const createTableLocations = {
+  TableName: 'locations',
+  KeySchema: [
+    { AttributeName: 'location_id', KeyType: 'HASH' },
+  ],
+  AttributeDefinitions: [
+    { AttributeName: 'location_id', AttributeType: 'N' },
+  ],
+  BillingMode: "PAY_PER_REQUEST"
+};
 
 async function createAllTable() {
   try{
-    const users = await dynamodb.createTable(createTableUsers).promise();
-    console.log("Tao bang user",users.TableDescription.TableName);
+    // const graduation_approved = await dynamodb.createTable(createTableGraduation_approved).promise();
+    // console.log("Tao bang graduation_approved",graduation_approved.TableDescription.TableName);
+    // const users = await dynamodb.createTable(createTableUsers).promise();
+    // console.log("Tao bang user",users.TableDescription.TableName);
     // const admin = await dynamodb.createTable(createTableAdmins).promise();
     // console.log("Tao bang admin", admin.TableDescription.TableName);
     // const notifications = await dynamodb.createTable(createTableNotifications).promise();
@@ -109,6 +134,8 @@ async function createAllTable() {
     // console.log("Tao bang units", units.TableDescription.TableName);
     // const events = await dynamodb.createTable(createTableEvents).promise();
     // console.log("Tao bang events", events.TableDescription.TableName);
+    const locations = await dynamodb.createTable(createTableLocations).promise();
+    console.log("Tao bang locations",locations.TableDescription.TableName);
   }catch(err){
     console.error("❌ Lỗi tạo bảng:", err);
   }
@@ -121,109 +148,130 @@ async function createAllTable() {
 const docClient = new AWS.DynamoDB.DocumentClient();
 
 // Dữ liệu giả lập (tạm thời) để không bị lỗi khi put
-const userItem = {
-  TableName: 'users',
-  Item: {
-    user_code: 'U001',
-    full_name: 'Trần Trung Hậu',
-    email: 'hau@example.com',
-    avatar_url: 'https://example.com/avatar.jpg',
-    created_at: new Date().toISOString()
-  }
-};
-
-const adminItem = {
-  TableName: 'admins',
-  Item: {
-    user_code: 'U001',
-    unit_code: 'CNTT',
-    permissions: 'manage_events'
-  }
-};
-
-
-const notificationsItem = {
-  TableName: 'notifications',
-  Item: {
-    user_code: 'U001',
-    content: 'Bạn đã được duyệt đăng ký',
-    is_read: false,  // boolean chứ không phải chuỗi
-    created_at: new Date().toISOString()
-  }
-};
-
-const unitsItem = {
-  TableName: 'units',
-  Item: {
-    unit_code: 'CNTT',
-    name: 'Công nghệ thông tin',
-    description: 'Khoa CNTT',
-    created_at: new Date().toISOString()
-  }
-};
-
-const event_logsItem = {
-  TableName: 'event_logs',
-  Item: {
-    id: 1,
-    performed_by_user_code: 'U001',
-    action: 'update_registration',
-    change_details: 'status: pending → approved',
-    timestamp: new Date().toISOString()
-  }
-};
-
-const registrationsItem = {
-  TableName: 'registrations',
-  Item: {
-    event_id: 101,
-    user_code: 'U001',
-    registration_status: 'approved',
-    registration_photo_url: 'https://example.com/photo.jpg',
-    created_at: new Date().toISOString()
-  }
-};
-
-const eventItem = {
-  TableName: 'events',
-  Item: {
-    event_id: 101,
-    unit_code: 'CNTT',
-    title: 'Lễ tốt nghiệp 2025',
-    description: 'Buổi lễ tổ chức tại hội trường A',
-    start_time: '2025-08-01T08:00:00Z',
-    end_time: '2025-08-01T10:00:00Z',
-    location: 'Hội trường A',
-    status: 'upcoming',
-    slide_template_url: 'https://example.com/template.pptx'
-  }
-};
-
 async function putAllTable() {
   try {
-    await docClient.put(userItem).promise();
-    console.log("✅ Đã ghi users");
+    // 👇 Hash mật khẩu mặc định
+    const hashedPassword = await bcrypt.hash('123456', 10);
 
+    const userItem = {
+      TableName: 'users',
+      Item: {
+        user_code: 'U001',
+        full_name: 'Trần Trung Hậu',
+        email: 'hau@example.com',
+        avatar_url: 'https://example.com/avatar.jpg',
+        password: hashedPassword, // ✅ Đã hash
+        created_at: new Date().toISOString()
+      }
+    };
+
+    const adminItem = {
+      TableName: 'admins',
+      Item: {
+        user_code: 'U001',
+        unit_code: 'CNTT',
+        permissions: 'manage_events'
+      }
+    };
+
+    const notificationsItem = {
+      TableName: 'notifications',
+      Item: {
+        user_code: 'U001',
+        content: 'Bạn đã được duyệt đăng ký',
+        is_read: false,
+        created_at: new Date().toISOString()
+      }
+    };
+
+    const unitsItem = {
+      TableName: 'units',
+      Item: {
+        unit_code: 'CNTT',
+        name: 'Công nghệ thông tin',
+        description: 'Khoa CNTT',
+        created_at: new Date().toISOString()
+      }
+    };
+
+    const event_logsItem = {
+      TableName: 'event_logs',
+      Item: {
+        id: 1,
+        performed_by_user_code: 'U001',
+        action: 'update_registration',
+        change_details: 'status: pending → approved',
+        timestamp: new Date().toISOString()
+      }
+    };
+
+    const registrationsItem = {
+      TableName: 'registrations',
+      Item: {
+        event_id: 101,
+        user_code: 'U001',
+        registration_status: 'approved',
+        registration_photo_url: 'https://example.com/photo.jpg',
+        created_at: new Date().toISOString()
+      }
+    };
+
+    const eventItem = {
+      TableName: 'events',
+      Item: {
+        event_id: 101,
+        unit_code: 'CNTT',
+        title: 'Lễ tốt nghiệp 2025',
+        description: 'Buổi lễ tổ chức tại hội trường A',
+        start_time: '2025-08-01T08:00:00Z',
+        end_time: '2025-08-01T10:00:00Z',
+        location: 'Hội trường A',
+        status: 'upcoming',
+        slide_template_url: 'https://example.com/template.pptx'
+      }
+    };
+
+    const graduation_approvedItem = {
+      TableName: 'graduation_approved',
+      Item: {
+        user_code: 'U001',              // Mã sinh viên
+        graduation_id: 1,               // ID của đợt tốt nghiệp
+        unit_code: 'CNTT',              // Mã đơn vị (ví dụ: CNTT)
+        uploaded_by: 'admin001',        // Mã người upload
+        created_at: new Date().toISOString(), // Thời gian upload
+        major: 'Khoa học máy tính',     // Ngành
+        training_time: '2019 - 2024',   // Thời gian đào tạo
+        gpa: 3.48,                      // Điểm trung bình
+        classification: 'Giỏi',         // Xếp loại
+        degree_title: 'Kỹ sư'           // Danh hiệu: "Kỹ sư" hoặc "Cử nhân"
+      }
+  };
+    
+     const locationItem = {
+      TableName: 'locations',
+      Item: {
+        location_id: 1,
+        location_name: 'Hội trường rùa',
+        location_map:"",
+        location_address: "Khu II, Đ. 3/2, P. Ninh Kiều, TP. Cần Thơ"
+      }
+    };
+  
+    // ✅ Ghi dữ liệu
+    await docClient.put(locationItem).promise();
+    console.log("✅ Đã ghi ");
+    // await docClient.put(graduation_approvedItem).promise();
+    // console.log("✅ Đã ghi ");
+    // await docClient.put(userItem).promise();
+    // console.log("✅ Đã ghi users");
+
+    // Bạn bật các dòng dưới nếu muốn ghi thêm các bảng
     // await docClient.put(adminItem).promise();
-    // console.log("✅ Đã ghi admins");
-
-    // await docClient.put(userRoleItem).promise();
-    // console.log("✅ Đã ghi user_roles");
-
     // await docClient.put(notificationsItem).promise();
-    // console.log("✅ Đã ghi notifications");
-
-    // await docClient.put(event_logsItem).promise();
-    // console.log("✅ Đã ghi event_logs");
-
-    // await docClient.put(registrationsItem).promise();
-    // console.log("✅ Đã ghi registrations");
-
     // await docClient.put(unitsItem).promise();
-    // console.log("✅ Đã ghi units");
-
+    // await docClient.put(event_logsItem).promise();
+    // await docClient.put(registrationsItem).promise();
     // await docClient.put(eventItem).promise();
-    // console.log("✅ Đã ghi events");
 
   } catch (err) {
     console.error("❌ Lỗi khi ghi dữ liệu:", err);

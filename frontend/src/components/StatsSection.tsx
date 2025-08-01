@@ -1,26 +1,30 @@
 import React from 'react';
-import { Container, Row, Col,} from 'react-bootstrap';
 
 const StatsSection: React.FC = () => (
-  <section className="py-5">
-    <Container>
-      <Row>
-        <Col md={6}>
-          <h4>Your Graduation Journey Starts Here</h4>
-          <p>Join thousands of students who have successfully registered for graduation.</p>
-        </Col>
-        <Col md={6} className="d-flex justify-content-around">
-          <div>
-            <h2>95%</h2>
-            <p>Successful Registration</p>
+  <section className="py-10 bg-gray-50">
+    <div className="max-w-6xl mx-auto px-4">
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        {/* Left content */}
+        <div className="mb-6 md:mb-0 max-w-xl">
+          <h2 className="text-2xl font-semibold text-gray-800">Your Graduation Journey Starts Here</h2>
+          <p className="text-gray-600 mt-2">
+            Join thousands of students who have successfully registered for graduation.
+          </p>
+        </div>
+
+        {/* Stats */}
+        <div className="flex gap-10">
+          <div className="text-center">
+            <h3 className="text-3xl font-bold text-blue-600">95%</h3>
+            <p className="text-gray-700 mt-1">Successful Registration</p>
           </div>
-          <div>
-            <h2>99%</h2>
-            <p>User Satisfaction</p>
+          <div className="text-center">
+            <h3 className="text-3xl font-bold text-green-600">99%</h3>
+            <p className="text-gray-700 mt-1">User Satisfaction</p>
           </div>
-        </Col>
-      </Row>
-    </Container>
+        </div>
+      </div>
+    </div>
   </section>
 );
 
