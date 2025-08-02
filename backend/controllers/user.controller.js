@@ -103,8 +103,6 @@ exports.getAllUsers = (req, res) => {
 
   const params = {
     TableName: TABLE,
-    Limit: 20,
-    ExclusiveStartKey: lastKey
   };
 
   docClient.scan(params, (err, data) => {
@@ -131,25 +129,83 @@ exports.getUser = (req, res) => {
 };
 
 // Cập nhật người dùng
+// exports.updateUser = (req, res) => {
+//   const { user_code } = req.params;
+//   const { full_name, email, avatar_url, role } = req.body;
+//   console.log('[📥] Yêu cầu cập nhật người dùng:', { user_code, role });
+//   if (!role) {
+//     console.warn('[⚠️] Thiếu trường role trong body');
+//     return res.status(400).json({ error: 'Thiếu trường role để cập nhật' });
+//   }
+//   const params = {
+//     TableName: TABLE,
+//     Key: { user_code },
+//     UpdateExpression: 'set full_name = :f, email = :e, avatar_url = :a, role = :r',
+//     ExpressionAttributeValues: {
+//       ':f': full_name,
+//       ':e': email,
+//       ':a': avatar_url,
+//       ':r': role
+//     },
+//     ReturnValues: 'ALL_NEW'
+//   };
+
+//   docClient.update(params, (err, data) => {
+//     if (err) return res.status(500).json({ error: 'Cập nhật thất bại' });
+//     res.json({ message: 'Cập nhật thành công', updated: data.Attributes });
+//   });
+// };
 exports.updateUser = (req, res) => {
   const { user_code } = req.params;
-  const { full_name, email, avatar_url, role } = req.body;
+  const { full_name, email, avatar_url, role, unit_code } = req.body;
+
+  console.log('[📥] Yêu cầu cập nhật người dùng:', req.body);
+
+  if (!user_code) {
+    return res.status(400).json({ error: 'Thiếu user_code' });
+  }
+
+  const allowedFields = {
+    full_name: full_name,
+    email: email,
+    avatar_url: avatar_url,
+    role: role,
+    unit_code: unit_code
+  };
+
+  const updateExpr = [];
+  const exprAttrValues = {};
+  const exprAttrNames = {};
+
+  Object.entries(allowedFields).forEach(([key, value]) => {
+    if (value !== undefined) {
+      const attrName = `#${key}`;
+      const attrValue = `:${key}`;
+      updateExpr.push(`${attrName} = ${attrValue}`);
+      exprAttrNames[attrName] = key;
+      exprAttrValues[attrValue] = value;
+    }
+  });
+
+  if (updateExpr.length === 0) {
+    return res.status(400).json({ error: 'Không có trường nào để cập nhật' });
+  }
 
   const params = {
     TableName: TABLE,
     Key: { user_code },
-    UpdateExpression: 'set full_name = :f, email = :e, avatar_url = :a, role = :r',
-    ExpressionAttributeValues: {
-      ':f': full_name,
-      ':e': email,
-      ':a': avatar_url,
-      ':r': role
-    },
+    UpdateExpression: 'set ' + updateExpr.join(', '),
+    ExpressionAttributeNames: exprAttrNames,
+    ExpressionAttributeValues: exprAttrValues,
     ReturnValues: 'ALL_NEW'
   };
 
   docClient.update(params, (err, data) => {
-    if (err) return res.status(500).json({ error: 'Cập nhật thất bại' });
+    if (err) {
+      console.error('[❌] Lỗi khi cập nhật:', err);
+      return res.status(500).json({ error: 'Cập nhật thất bại', details: err });
+    }
+    console.log('[✅] Cập nhật thành công:', data.Attributes);
     res.json({ message: 'Cập nhật thành công', updated: data.Attributes });
   });
 };

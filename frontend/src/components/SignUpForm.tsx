@@ -17,37 +17,46 @@ const SignupForm: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
 
-const navigate = useNavigate();
+  const handleLogin = async (data: FormData) => {
+    setLoading(true);
+    setErrorMessage('');
 
-const onSubmit = async (data: FormData) => {
-  setLoading(true);
-  setErrorMessage('');
+    try {
+      // 🧹 Xoá session cũ trước khi đăng nhập
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      delete axios.defaults.headers.common['Authorization'];
 
-  try {
-    const res = await axios.post('http://localhost:3001/auth/login', {
-      user_code: data.name,
-      password: data.password,
-    });
+      const res = await axios.post('http://localhost:3001/auth/login', {
+        user_code: data.name,
+        password: data.password,
+      });
 
-    // Lưu vào localStorage
-    localStorage.setItem('token', res.data.token);
-    localStorage.setItem('user', JSON.stringify(res.data.user));
+      // ✅ Lưu lại session mới
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('user', JSON.stringify(res.data.user));
+      axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
 
-    const role = res.data.user.role;
-    if (role === 'admin') {
-      navigate('/admin');
-    } else if (role === 'admin_unit') {
-      navigate('/adminunit');
-    } else {
-      navigate('/home'); // sinh viên hoặc mặc định
+      const role = res.data.user.role;
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'admin_unit') {
+        navigate('/adminunit');
+      } else {
+        navigate('/home');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.error || 'Đăng nhập thất bại');
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    setErrorMessage(err.response?.data?.error || 'Đăng nhập thất bại');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const onSubmit = async (data: FormData) => {
+    await handleLogin(data);
+  };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-sm mx-auto p-6 bg-white rounded shadow">

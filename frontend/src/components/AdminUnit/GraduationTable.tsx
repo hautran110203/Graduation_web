@@ -15,7 +15,6 @@ export interface Student {
   faculty_code:string
 }
 
-
 interface Props {
   students: Student[];
   onEdit: (updatedStudent: Student) => void; 
@@ -71,56 +70,58 @@ const GraduationTable: React.FC<Props> = ({ students, onDelete, onEdit }) => {
         />
       </div>
 
-      {/* Table */}
-      <table className="w-full text-sm text-left border-separate border-spacing-y-1">
-        <thead className="bg-gray-100 text-gray-700 font-medium">
-          <tr>
-            <th className="p-2">
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={(e) => handleSelectAll(e.target.checked)}
-              />
-            </th>
-            <th className="p-2">Mã SV</th>
-            <th className="p-2">Tên SV</th>
-            <th className="p-2">Số quyết định</th>
-            <th className="p-2">Ngành</th>
-            <th className="p-2">Thời gian đào tạo</th>
-            <th className="p-2">GPA</th>
-            <th className="p-2">Xếp loại</th>
-            <th className="p-2">Danh hiệu</th>
-          </tr>
-        </thead>
-        <tbody>
-          {students.map((s) => (
-            <tr key={s.user_code} className="bg-white shadow-sm hover:shadow-md rounded">
-              <td className="p-2">
+      {/* Responsive Table Wrapper */}
+      <div className="w-full overflow-x-auto">
+        <table className="min-w-[800px] w-full text-sm text-left border-separate border-spacing-y-1">
+          <thead className="bg-gray-100 text-gray-700 font-medium">
+            <tr>
+              <th className="p-2">
                 <input
                   type="checkbox"
-                  checked={selectedUserCodes.includes(s.user_code)}
-                  onChange={(e) => handleSelect(s.user_code, e.target.checked)}
+                  checked={allSelected}
+                  onChange={(e) => handleSelectAll(e.target.checked)}
                 />
-              </td>
-              <td className="p-2">{s.user_code}</td>
-              <td className="p-2">{s.full_name}</td>
-              <td className="p-2">{s.graduation_id}</td>
-              <td className="p-2">{s.major}</td>
-              <td className="p-2">{s.training_time}</td>
-              <td className="p-2">{s.gpa.toFixed(2)}</td>
-              <td className="p-2">{s.classification}</td>
-              <td className="p-2">{s.degree_title}</td>
+              </th>
+              <th className="p-2 whitespace-nowrap">Mã SV</th>
+              <th className="p-2 whitespace-nowrap">Tên SV</th>
+              <th className="p-2 whitespace-nowrap">Số quyết định</th>
+              <th className="p-2 whitespace-nowrap">Ngành</th>
+              <th className="p-2 whitespace-nowrap">Thời gian đào tạo</th>
+              <th className="p-2 whitespace-nowrap">GPA</th>
+              <th className="p-2 whitespace-nowrap">Xếp loại</th>
+              <th className="p-2 whitespace-nowrap">Danh hiệu</th>
             </tr>
-          ))}
-          {students.length === 0 && (
-            <tr>
-              <td colSpan={9} className="text-center py-4 text-gray-500">
-                Không có dữ liệu sinh viên.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {students.map((s) => (
+              <tr key={s.user_code} className="bg-white shadow-sm hover:shadow-md rounded">
+                <td className="p-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedUserCodes.includes(s.user_code)}
+                    onChange={(e) => handleSelect(s.user_code, e.target.checked)}
+                  />
+                </td>
+                <td className="p-2 whitespace-nowrap">{s.user_code}</td>
+                <td className="p-2 whitespace-nowrap">{s.full_name}</td>
+                <td className="p-2 whitespace-nowrap">{s.graduation_id}</td>
+                <td className="p-2 whitespace-nowrap">{s.major}</td>
+                <td className="p-2 whitespace-nowrap">{s.training_time}</td>
+                <td className="p-2 whitespace-nowrap">{s.gpa.toFixed(2)}</td>
+                <td className="p-2 whitespace-nowrap">{s.classification}</td>
+                <td className="p-2 whitespace-nowrap">{s.degree_title}</td>
+              </tr>
+            ))}
+            {students.length === 0 && (
+              <tr>
+                <td colSpan={9} className="text-center py-4 text-gray-500">
+                  Không có dữ liệu sinh viên.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
       {/* Popup modal */}
       <EditStudentModal

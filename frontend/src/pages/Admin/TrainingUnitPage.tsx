@@ -104,70 +104,70 @@ const TrainingUnitPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">🏢 Đơn vị đào tạo</h1>
+  <div className="space-y-6 px-4 sm:px-6">
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h1 className="text-2xl font-semibold">🏢 Đơn vị đào tạo</h1>
 
-        <div className="relative" ref={dropdownRef}>
-          <div className="flex gap-2 items-center">
-            <button
-              className="px-4 py-2 border rounded bg-white text-sm hover:bg-gray-100"
-              onClick={() => setShowActions(!showActions)}
-            >
-              Actions ▾
-            </button>
-            <button
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-              onClick={() => {
-                setEditingUnit(null);
-                setPopupMode('create');
-              }}
-            >
-              Tạo đơn vị
-            </button>
-          </div>
-
-          {/* Dropdown menu */}
-          <div
-            className={`absolute left-0 mt-2 w-48 bg-white border shadow-lg rounded z-10 text-sm origin-top transition-all duration-200 ease-out
-              ${showActions ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible'}
-            `}
+      <div className="relative" ref={dropdownRef}>
+        <div className="flex gap-2 items-center">
+          <button
+            className="px-4 py-2 border rounded bg-white text-sm hover:bg-gray-100"
+            onClick={() => setShowActions(!showActions)}
           >
-            <button
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 disabled:text-gray-400"
-              disabled={selectedUnits.length !== 1}
-              onClick={() => {
-                const toEdit = units.find((u) => u.unitCode === selectedUnits[0]);
-                if (toEdit) {
-                  setEditingUnit(toEdit);
-                  setPopupMode('edit');
-                }
-                setShowActions(false);
-              }}
-            >
-              Chỉnh sửa
-            </button>
-            <button
-              className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 disabled:text-gray-400"
-              disabled={selectedUnits.length === 0}
-              onClick={() => {
-                selectedUnits.forEach(code => handleDelete(code));
-                setShowActions(false);
-              }}
-            >
-              Xóa
-            </button>
-          </div>
+            Actions ▾
+          </button>
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded"
+            onClick={() => {
+              setEditingUnit(null);
+              setPopupMode('create');
+            }}
+          >
+            Tạo đơn vị
+          </button>
+        </div>
+
+        {/* Dropdown */}
+        <div
+          className={`absolute left-0 mt-2 w-48 bg-white border shadow-lg rounded z-10 text-sm origin-top transition-all duration-200 ease-out
+            ${showActions ? 'scale-100 opacity-100 visible' : 'scale-95 opacity-0 invisible'}
+          `}
+        >
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 disabled:text-gray-400"
+            disabled={selectedUnits.length !== 1}
+            onClick={() => {
+              const toEdit = units.find((u) => u.unitCode === selectedUnits[0]);
+              if (toEdit) {
+                setEditingUnit(toEdit);
+                setPopupMode('edit');
+              }
+              setShowActions(false);
+            }}
+          >
+            Chỉnh sửa
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 disabled:text-gray-400"
+            disabled={selectedUnits.length === 0}
+            onClick={() => {
+              selectedUnits.forEach(code => handleDelete(code));
+              setShowActions(false);
+            }}
+          >
+            Xóa
+          </button>
         </div>
       </div>
+    </div>
 
-
-      {/* Table */}
-      {loading ? (
-        <div className="text-center text-gray-500 py-8">⏳ Đang tải danh sách đơn vị...</div>
-      ) : (
-        <table className="w-full text-sm bg-white border shadow-sm rounded mt-4">
+    {/* Table */}
+    {loading ? (
+      <div className="text-center text-gray-500 py-8">⏳ Đang tải danh sách đơn vị...</div>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm bg-white border shadow-sm rounded mt-4">
           <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
             <tr>
               <th className="p-3">
@@ -197,21 +197,23 @@ const TrainingUnitPage: React.FC = () => {
             ))}
           </tbody>
         </table>
-      )}
+      </div>
+    )}
 
-      {/* Popup */}
-      {popupMode && (
-        <CreateOrEditUnitPopup
-          onClose={() => {
-            setPopupMode(null);
-            setEditingUnit(null);
-          }}
-          onSubmit={popupMode === 'create' ? handleCreate : handleUpdate}
-          initialData={editingUnit || undefined}
-        />
-      )}
-    </div>
-  );
+    {/* Popup */}
+    {popupMode && (
+      <CreateOrEditUnitPopup
+        onClose={() => {
+          setPopupMode(null);
+          setEditingUnit(null);
+        }}
+        onSubmit={popupMode === 'create' ? handleCreate : handleUpdate}
+        initialData={editingUnit || undefined}
+      />
+    )}
+  </div>
+);
+
 };
 
 export default TrainingUnitPage;

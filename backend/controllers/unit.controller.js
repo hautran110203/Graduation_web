@@ -2,6 +2,24 @@ const AWS = require('aws-sdk');
 const docClient = new AWS.DynamoDB.DocumentClient();
 
 const TABLE = 'units';
+// Hàm test: chỉ trả về { code, name }
+exports.getTestUnits = async (req, res) => {
+  try {
+    const params = { TableName: TABLE };
+    const data = await docClient.scan(params).promise();
+
+    const formatted = data.Items.map((item) => ({
+      code: item.unit_code,
+      name: item.name,
+    }));
+
+    console.log('🧪 [DEBUG] Test units:', formatted);
+    res.json(formatted);
+  } catch (err) {
+    console.error('❌ Lỗi trong getTestUnits:', err);
+    res.status(500).json({ error: 'Lỗi khi lấy đơn vị test' });
+  }
+};
 
 // Lấy tất cả đơn vị
 exports.getAllUnits = async (req, res) => {

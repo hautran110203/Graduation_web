@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const navigate = useNavigate(); // 👈 Thêm navigate
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const role = user?.role;
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login'); // 👈 Điều hướng về trang đăng nhập
+    window.location.href = '/login';// 👈 Điều hướng về trang đăng nhập
   };
 
   return (
@@ -22,10 +24,15 @@ const Header: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="space-x-6 text-sm text-gray-700 font-medium hidden md:flex">
-        <Link to="/home" className="hover:text-blue-600">TRANG CHỦ</Link>
-        <Link to="/events" className="hover:text-blue-600">SỰ KIỆN</Link>
-      </nav>
+
+      {(role !== 'admin' && role !== 'admin_unit') && (
+        <nav className="space-x-6 text-sm text-gray-700 font-medium hidden md:flex">
+          <Link to="/home" className="hover:text-blue-600">TRANG CHỦ</Link>
+          <Link to="/events" className="hover:text-blue-600">SỰ KIỆN</Link>
+        </nav>
+      )}
+
+      
 
       {/* Avatar & Dropdown */}
       <div className="relative ml-4">

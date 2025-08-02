@@ -7,7 +7,6 @@ interface Props {
   searchQuery: string;
   setSearchQuery: (val: string) => void;
   faculties: { unit_code: string; unit_name: string }[];
-
 }
 
 const GraduationFilter: React.FC<Props> = ({
@@ -15,7 +14,7 @@ const GraduationFilter: React.FC<Props> = ({
   setFacultyFilter,
   searchQuery,
   setSearchQuery,
-  faculties
+  faculties,
 }) => {
   const [localSearch, setLocalSearch] = useState(searchQuery);
 
@@ -29,23 +28,23 @@ const GraduationFilter: React.FC<Props> = ({
   }, [localSearch, setSearchQuery]);
 
   return (
-    <div className="flex items-center gap-4 mb-4">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4">
       {/* Dropdown lọc khoa */}
       <select
         value={facultyFilter}
         onChange={(e) => setFacultyFilter(e.target.value)}
-        className="border border-gray-300 px-3 py-2 rounded w-60"
+        className="border border-gray-300 px-3 py-2 rounded w-full sm:w-60"
       >
         <option value="">Tất cả khoa</option>
-      {Array.isArray(faculties) && faculties.map(faculty => (
-        <option key={faculty.unit_code} value={faculty.unit_code}>
-          Khoa {faculty.unit_name}
-        </option>
-      ))}
+        {Array.isArray(faculties) && faculties.map((faculty) => (
+          <option key={faculty.unit_code} value={faculty.unit_code}>
+            Khoa {faculty.unit_name}
+          </option>
+        ))}
       </select>
 
       {/* Ô tìm kiếm */}
-      <div className="flex items-center border border-gray-300 px-2 py-1 rounded w-64 bg-white">
+      <div className="flex items-center border border-gray-300 px-2 py-1 rounded w-full sm:w-64 bg-white">
         <HiOutlineSearch className="text-gray-400 w-5 h-5" />
         <input
           type="text"

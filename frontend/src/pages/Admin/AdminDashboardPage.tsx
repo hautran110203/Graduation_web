@@ -1,44 +1,59 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewStats from '../../components/admin/OverviewStats';
 import DashboardChart from '../../components/admin/DashboardChart';
 import RecentLogs from '../../components/admin/RecentLogs';
 import UpcomingEvents from '../../components/admin/UpcomingEvents';
 
 const AdminDashboardPage: React.FC = () => {
-  const stats = {
-    totalEvents: 12,
-    upcomingEvents: 3,
-    totalRegistrations: 180,
-    activeAdmins: 5,
-  };
+  const [stats, setStats] = useState({
+    totalEvents: 0,
+    upcomingEvents: 0,
+    totalRegistrations: 0,
+  });
 
-  const chartData = [
-    { name: 'Tốt nghiệp 2025', registrations: 120 },
-    { name: 'Tuyên dương SV giỏi', registrations: 45 },
-    { name: 'Tổng kết Học kỳ 1', registrations: 78 },
-  ];
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [upcoming, setUpcoming] = useState<any[]>([]);
 
-  const logs = [
-    {
-      id: '1',
-      timestamp: '2025-07-18T14:30:00Z',
-      user: 'Nguyễn Văn A',
-      action: 'đã phê duyệt đăng ký',
-      detail: 'Sinh viên Trần Thị B - Sự kiện Tốt nghiệp 2025',
-    },
-    {
-      id: '2',
-      timestamp: '2025-07-18T10:00:00Z',
-      user: 'Trần Thị C',
-      action: 'đã tạo sự kiện',
-      detail: 'Lễ tuyên dương sinh viên giỏi',
-    },
-  ];
+  useEffect(() => {
+   const fetchStats = async () => {
+      try {
+        const [eventRes, regisRes] = await Promise.all([
+          fetch('http://localhost:3001/events'),
+          fetch('http://localhost:3001/registrations/getAll'),
+        ]);
 
-  const upcoming = [
-    { name: 'Tốt nghiệp 2025', date: '25/08/2025' },
-    { name: 'Lễ khai giảng', date: '01/09/2025' },
-  ];
+        const events = await eventRes.json();
+        const registrations = (await regisRes.json()).data || [];
+
+        const today = new Date();
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(today.getDate() + 7);
+
+        const totalEvents = events.filter((e: any) => new Date(e.date) >= today).length;
+
+        const upcomingEvents = events.filter((e: any) => {
+          const eventDate = new Date(e.date);
+          return eventDate >= today && eventDate <= oneWeekLater;
+        }).length;
+
+        const eventIds = new Set(
+          events
+            .filter((e: any) => new Date(e.date) >= today)
+            .map((e: any) => e.event_id)
+        );
+
+        const totalRegistrations = registrations.filter((r: any) =>
+          eventIds.has(r.event_id)
+        ).length;
+
+        setStats({ totalEvents, upcomingEvents, totalRegistrations });
+      } catch (err) {
+        console.error('Lỗi khi load thống kê dashboard:', err);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">

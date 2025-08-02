@@ -33,15 +33,14 @@ const RegistrationListPage: React.FC = () => {
     fetchData();
   }, []);
 
-  // Tạo danh sách sự kiện từ dữ liệu
   const eventOptions = [
-  'Tất cả',
-  ...Array.from(
-    new Set(
-      registrations.map(r => r.event_name).filter((name): name is string => Boolean(name))
+    'Tất cả',
+    ...Array.from(
+      new Set(
+        registrations.map(r => r.event_name).filter((name): name is string => Boolean(name))
+      )
     )
-  )
-];
+  ];
 
   const filtered =
     selectedEvent === 'Tất cả'
@@ -49,16 +48,20 @@ const RegistrationListPage: React.FC = () => {
       : registrations.filter((r) => r.event_name === selectedEvent);
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="p-4 sm:p-6">
+      <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">
         🧾 Danh sách đăng ký sự kiện
       </h2>
+
       <RegistrationFilter
         selectedEvent={selectedEvent}
         setSelectedEvent={setSelectedEvent}
         eventOptions={eventOptions}
       />
-      <RegistrationTable data={filtered} />
+
+      <div className="overflow-x-auto">
+        <RegistrationTable data={filtered} />
+      </div>
     </div>
   );
 };

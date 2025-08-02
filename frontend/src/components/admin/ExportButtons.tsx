@@ -1,60 +1,27 @@
 import React from 'react';
 
-interface EventOption {
-  label: string;
-  value: number;
+interface ExportButtonsProps {
+  onExportPDF: () => void;
+  onExportExcel: () => void;
 }
 
-interface EventSelectorProps {
-  selectedEvent: string;
-  setSelectedEvent: (value: string) => void;
-  eventOptions: EventOption[];
-  onDownload?: () => void;
-  onEventChange?: (eventId: string) => void; // thêm prop callback
-}
-
-const EventSelector: React.FC<EventSelectorProps> = ({
-  selectedEvent,
-  setSelectedEvent,
-  eventOptions,
-  onDownload,
-  onEventChange, // nhận vào
-}) => {
-  const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedEvent(value); // cập nhật selectedEvent
-    if (onEventChange) {
-      onEventChange(value); // gọi callback để load danh sách user từ eventId
-    }
-  };
-
+const ExportButtons: React.FC<ExportButtonsProps> = ({ onExportPDF, onExportExcel }) => {
   return (
-    <div className="flex justify-between items-center">
-      <div>
-        <label className="block text-lg font-medium px-2">Chọn sự kiện trình chiếu:</label>
-        <select
-          className="border border-gray-300 rounded px-4 py-2 mt-1"
-          value={selectedEvent}
-          onChange={handleChange}
-        >
-          <option value="">-- Chọn sự kiện --</option>
-          {eventOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-      </div>
+    <div className="flex justify-end gap-4 mt-6">
       <button
-        onClick={() => onDownload?.()}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        disabled={!onDownload}
+        onClick={onExportExcel}
+        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
       >
-        📥 Tải danh sách
+        📥 Xuất Excel
       </button>
-
+      <button
+        onClick={onExportPDF}
+        className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+      >
+        📄 Xuất PDF
+      </button>
     </div>
   );
 };
 
-export default EventSelector;
+export default ExportButtons;
