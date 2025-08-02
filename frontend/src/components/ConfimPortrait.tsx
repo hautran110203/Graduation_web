@@ -1,25 +1,34 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '../services/cropImage';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface Event {
   id: number;
-  name: string;
+  title: string;
   date: string;
   location: string;
+  description?: string;
   [key: string]: any;
 }
 
-interface ConfirmPortraitProps {
-  eventId: number;
+interface ConfirmPortraitProps { 
+  event?: Event;     // truyền trực tiếp từ cha
   onCompleted: (newAvatar: string) => void;
   hideEventInfo?: boolean;
+  mode?: "register" | "update";
 }
-const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({ eventId, onCompleted,hideEventInfo }) => {
-  const location = useLocation();
-  const event: Event = location.state?.event;
 
+const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({
+  event: eventFromProps,
+  onCompleted,
+  hideEventInfo,
+  mode = "register"
+}) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const event: Event | undefined = eventFromProps || location.state?.event;
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -29,7 +38,34 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({ eventId, onCompleted,
   const [isUploading, setIsUploading] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string>('');
   const [isImageValid, setIsImageValid] = useState<boolean | null>(null);
-  
+  const [alreadyRegistered, setAlreadyRegistered] = useState<boolean>(false);
+
+  const userData = localStorage.getItem("user");
+  const user = userData ? JSON.parse(userData) : null;
+  const user_code = user?.user_code;
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const checkExistingRegistration = async () => {
+      if (!event?.id || !user_code) return;
+      try {
+        const res = await fetch("http://localhost:3001/registrations", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const result = await res.json();
+        const matched = result.data?.find((reg: any) => reg.event_id === event.id && reg.user_code === user_code);
+        if (matched) {
+          setAlreadyRegistered(true);
+          setValidationMessage("❗Bạn đã đăng ký sự kiện này.");
+        }
+      } catch (err) {
+        console.error("❌ Lỗi kiểm tra đăng ký:", err);
+      }
+    };
+
+    checkExistingRegistration();
+  }, [event?.id, user_code, token]);
+
   const onCropComplete = useCallback((_: any, area: any) => {
     setCroppedAreaPixels(area);
   }, []);
@@ -49,64 +85,55 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({ eventId, onCompleted,
   const handleCrop = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
     setIsUploading(true);
-
     try {
       const { file, url } = await getCroppedImg(imageSrc, croppedAreaPixels);
-      setCroppedImage(url);
-      setIsCropping(false);
-
       const formData = new FormData();
-      formData.append("file", file, "portrait.jpg");
+      formData.append("file", file);
 
-      setValidationMessage("Ảnh đã được xử lý (bỏ qua xác minh)");
+      const uploadRes = await fetch("http://localhost:3001/registrations/avatar", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload ảnh thất bại");
+
+      const uploadData = await uploadRes.json();
+      const realImageUrl = uploadData.imageUrl;
+
+      setCroppedImage(realImageUrl);
+      setIsCropping(false);
+      setValidationMessage("✅ Ảnh đã được xử lý và lưu thành công");
       setIsImageValid(true);
-    } catch (error) {
-      setValidationMessage("Lỗi gửi ảnh tới server");
+    } catch (err) {
+      console.error("❌ Lỗi crop/upload:", err);
+      setValidationMessage("❌ Lỗi gửi ảnh tới server");
       setIsImageValid(false);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleConfirmRegister = async () => {
-    if ( !event || !croppedImage) return;
-    // if (!isImageValid || !croppedImage || !event) return;
-    const userData = localStorage.getItem("user");
-    const user = userData ? JSON.parse(userData) : null;
-    const user_code = user?.user_code;
-    const unit_code = user?.unit_code;
-
-    if (!user_code) {
-    alert("Không tìm thấy mã người dùng");
-    return;
-    }
-
+  const handleCreateRegister = async () => {
+    if (!event || !croppedImage) return;
 
     try {
-      const token = localStorage.getItem("token");
-      
-      const checkRes = await fetch(`http://localhost:3001/registrations/check-registration/${user_code}/${event.id}/${unit_code}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`
+      const checkRes = await fetch(`http://localhost:3001/registrations/check-registration/${user_code}/${event.id}/${user?.unit_code}`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const checkData = await checkRes.json();
+      if (!checkData.success || !checkData.eligible) {
+        alert("❌ Không đủ điều kiện đăng ký: " + (checkData.message || checkData.reason));
+        return;
       }
-    });
-    console.log("Sử dụng eventId:", eventId);
 
-    const checkData = await checkRes.json();
-
-    if (!checkData.success || !checkData.eligible) {
-      alert("❌ Không đủ điều kiện đăng ký: " + checkData.message || checkData.reason);
-      return;
-    }
-    
       const payload = {
         user_code,
         event_id: event.id,
         avatar_url: croppedImage
       };
-      console.log("Sending:", payload);
-
+      
       const res = await fetch("http://localhost:3001/registrations", {
         method: "POST",
         headers: {
@@ -115,98 +142,167 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({ eventId, onCompleted,
         },
         body: JSON.stringify(payload)
       });
+
       const data = await res.json();
+
       if (!res.ok) {
-        console.log("Server trả về lỗi:", data);
         alert("❌ Đăng ký thất bại: " + data.error);
       } else {
         alert("✅ Đăng ký thành công!");
+        onCompleted(croppedImage);
+        navigate("/myevent");
       }
+
     } catch (error) {
-      console.log("Server trả về lỗi:", error);
       alert("❌ Lỗi kết nối đến server");
+      console.error("Lỗi đăng ký:", error);
+    }
+  };
+
+  const handleUpdateAvatar = async () => {
+    console.log("👉 Nút được nhấn");
+    console.log("📦 Event:", event);
+    console.log("🖼️ Cropped Image:", croppedImage);
+    console.log("🟢 User Code:", user_code);
+    if (!event || !croppedImage) {
+      console.warn("⚠️ Thiếu event hoặc croppedImage, không thể cập nhật.");
+      return;
+    }
+
+    const payload = {
+    avatar_url: croppedImage,
+    user_code: user_code,
+    previous_avatar_url: event.avatar_url
+  };
+    try {
+      
+      const res = await fetch(`http://localhost:3001/registrations/${event.event_id}/update`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert("❌ Cập nhật thất bại: " + data.error);
+      } else {
+        alert("✅ Cập nhật ảnh thành công!");
+        onCompleted(croppedImage);
+      }
+
+    } catch (error) {
+      alert("❌ Lỗi kết nối đến server");
+      console.error("Lỗi cập nhật:", error);
     }
   };
 
   return (
-  <div className={`mx-auto p-6 ${hideEventInfo ? "max-w-2xl" : "max-w-6xl"}`}>
-    <h2 className={`text-2xl font-bold mb-6 flex items-center gap-2 ${hideEventInfo ? 'justify-center' : ''}`}>
-      📄 Thông tin đăng ký sự kiện
-    </h2>
+    <div className={`mx-auto p-6 ${hideEventInfo ? "max-w-2xl" : "max-w-6xl"}`}>
+      <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+        📄 {mode === "update" ? "Cập nhật ảnh chân dung" : "Thông tin đăng ký sự kiện"}
+      </h2>
 
-    <div className={`grid gap-6 ${!hideEventInfo ? 'md:grid-cols-2' : 'grid-cols-1 justify-center'}`}>    
-      {!hideEventInfo && event && (
-        <div className="bg-white rounded-lg shadow p-6 space-y-4 border border-gray-100">
-          <div className="flex items-start gap-3">
-            <span className="text-pink-600 text-xl mt-1">📌</span>
-            <p><span className="font-semibold">Tên sự kiện:</span> {event.title || "Không xác định"}</p>
+      <div className={`grid gap-6 ${!hideEventInfo ? 'md:grid-cols-2' : 'grid-cols-1 justify-center'}`}>
+        {!hideEventInfo && event && (
+          <div className="bg-white rounded-lg shadow p-6 space-y-4 border">
+            <p><strong>Tên sự kiện:</strong> {event.title}</p>
+            <p>
+              <strong>Thời gian tổ chức:</strong>{" "}
+              {event.start_time && event.end_time ? (
+                <>
+                  {new Date(event.start_time).toLocaleDateString('vi-VN')} |{" "}
+                  {new Date(event.start_time).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })} -{" "}
+                  {new Date(event.end_time).toLocaleTimeString('vi-VN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </>
+              ) : (
+                "Không xác định"
+              )}
+            </p>
+            <p><strong>Địa điểm:</strong> {event.location}</p>
+            <p>{event.description}</p>
           </div>
-          <div className="flex items-start gap-3">
-            <span className="text-blue-600 text-xl mt-1">📅</span>
-            <p><span className="font-semibold">Ngày tổ chức:</span> {event.date ? new Date(event.date).toLocaleDateString('vi-VN') : "Không xác định"}</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-red-600 text-xl mt-1">📍</span>
-            <p><span className="font-semibold">Địa điểm:</span> {event.location || "Không xác định"}</p>
-          </div>
-          <div className="text-gray-700 text-sm mt-2">{event.description}</div>
+        )}
+
+        <div className="bg-white rounded-lg shadow p-6 border">
+          {mode !== "update" && alreadyRegistered && (
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-3 mb-4 rounded text-sm">
+              ⚠️ Bạn đã đăng ký sự kiện này.
+            </div>
+          )}
+
+          <label className="block text-sm font-medium text-gray-700 mb-2">Tải ảnh chân dung:</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            disabled={mode !== "update" && alreadyRegistered}
+            className="mb-4"
+          />
+
+          {isCropping && imageSrc && (
+            <div className="relative h-64 mb-4">
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={3 / 4}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+              <button onClick={handleCrop} className="absolute bottom-3 right-3 bg-blue-600 text-white px-4 py-2 rounded">
+                ✅ Cắt ảnh
+              </button>
+            </div>
+          )}
+
+          {croppedImage && !isCropping && (
+            <div className="text-center">
+              <img src={croppedImage} alt="Cropped" className="w-36 mx-auto mb-3" />
+              {validationMessage && (
+                <p className={`text-sm ${isImageValid ? "text-green-600" : "text-red-600"}`}>
+                  {validationMessage}
+                </p>
+              )}
+
+              {mode === "register" && (
+                <button
+                  onClick={handleCreateRegister}
+                  disabled={!isImageValid || isUploading || alreadyRegistered}
+                  className={`mt-4 px-5 py-2 rounded text-white font-semibold ${
+                    !isImageValid || isUploading || alreadyRegistered ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+                  }`}
+                >
+                  {alreadyRegistered ? "Đã đăng ký" : "Xác nhận đăng ký"}
+                </button>
+              )}
+
+              {mode === "update" && (
+                <button
+                  onClick={handleUpdateAvatar}
+                  disabled={!isImageValid || isUploading}
+                  className={`mt-4 px-5 py-2 rounded text-white font-semibold ${
+                    !isImageValid || isUploading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                >
+                  Cập nhật ảnh
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      )}
-
-
-      {/* CARD 2: Xác nhận ảnh */}
-      <div className="bg-white rounded-lg shadow p-6 border border-gray-100">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Tải ảnh chân dung:</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="w-full mb-4 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"
-        />
-
-        {isCropping && imageSrc && (
-          <div className="relative w-full h-64 bg-gray-100 mb-4 rounded overflow-hidden border border-dashed border-gray-300">
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={3 / 4}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-            />
-            <button
-              onClick={handleCrop}
-              className="absolute bottom-3 right-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 shadow"
-            >
-              ✅ Cắt ảnh
-            </button>
-          </div>
-        )}
-
-        {croppedImage && !isCropping && (
-          <div className="text-center">
-            <img src={croppedImage} alt="Ảnh đã cắt" className="w-36 h-auto mx-auto rounded shadow mb-3 border border-gray-300" />
-            {validationMessage && (
-              <p className={`text-sm font-medium flex items-center justify-center gap-2 ${isImageValid ? "text-green-600" : "text-red-600"}`}>
-                {isImageValid ? "✅" : "❌"} {validationMessage}
-              </p>
-            )}
-            <button
-              onClick={handleConfirmRegister}
-              disabled={!isImageValid || isUploading}
-              className={`mt-4 px-5 py-2 rounded text-white font-semibold transition ${
-                isImageValid ? "bg-green-600 hover:bg-green-700" : "bg-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Xác nhận đăng ký
-            </button>
-          </div>
-        )}
       </div>
     </div>
-  </div>
-
   );
 };
 

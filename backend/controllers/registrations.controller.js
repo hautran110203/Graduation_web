@@ -6,6 +6,104 @@ const EVENT_TABLE = 'events';
 const USER_TABLE = 'users';
 const UNIT_TABLE = 'units';
 
+
+const multer = require('multer');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+
+const BUCKET_NAME = 'graduation-avatar-bucket';
+const s3 = new AWS.S3();
+
+// ✅ Cấu hình multer memory
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+// ✅ Middleware xử lý upload từ field 'file'
+exports.uploadAvatar = [
+  upload.single('file'),
+  async (req, res) => {
+    try {
+      const file = req.file;
+      if (!file) {
+        return res.status(400).json({ success: false, error: 'Thiếu file ảnh' });
+      }
+
+      const ext = path.extname(file.originalname);
+      const key = `avatars/${uuidv4()}${ext}`;
+
+      // ✅ Upload lên S3
+      const params = {
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read', // Để ảnh public URL
+      };
+
+      await s3.upload(params).promise();
+      const imageUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+
+      return res.status(200).json({
+        success: true,
+        message: 'Upload ảnh thành công',
+        imageUrl,
+      });
+    } catch (err) {
+      console.error('❌ Upload thất bại:', err);
+      return res.status(500).json({ success: false, error: 'Lỗi khi upload ảnh' });
+    }
+  },
+];
+
+exports.updateAvatar = async (req, res) => {
+  const { event_id } = req.params;
+  console.log(event_id)
+  const { avatar_url, previous_avatar_url,user_code } = req.body;
+ 
+  console.log("👉 PARAMS:", req.params); // event_id
+  console.log("👉 BODY:", req.body); // avatar_url, previous_avatar_url
+
+  if (!avatar_url || !event_id || !user_code) {
+    return res.status(400).json({ success: false, error: 'Thiếu thông tin cần thiết' });
+  }
+
+  try {
+    // Xoá ảnh cũ trên S3 nếu có và khác ảnh mới
+    if (previous_avatar_url && previous_avatar_url !== avatar_url) {
+      const key = previous_avatar_url.split('amazonaws.com/')[1];
+      if (key) {
+        await s3
+          .deleteObject({
+            Bucket: 'graduation-avatar-bucket',
+            Key: key,
+          })
+          .promise();
+        console.log(`✅ Đã xoá ảnh cũ: ${key}`);
+      }
+    }
+
+    // Cập nhật avatar mới vào DynamoDB
+    await docClient
+      .update({
+        TableName: 'registrations',
+        Key: {
+          event_id: parseInt(event_id),
+          user_code,
+        },
+        UpdateExpression: 'set avatar_url = :url',
+        ExpressionAttributeValues: {
+          ':url': avatar_url,
+        },
+      })
+      .promise();
+
+    return res.json({ success: true, message: 'Avatar đã được cập nhật' });
+  } catch (err) {
+    console.error('❌ Lỗi cập nhật avatar:', err);
+    return res.status(500).json({ success: false, error: 'Cập nhật avatar thất bại' });
+  }
+};
+
 // ================== TẠO ĐĂNG KÝ MỚI ==================
 exports.registerForEvent = async (req, res) => {
   const { user_code, event_id, avatar_url } = req.body;
@@ -155,48 +253,6 @@ exports.checkRegistrationEligibility = async (req, res) => {
         reason: 'Không tìm thấy sự kiện.',
       });
     }
-//     console.log('🟢 Đang kiểm tra với:');
-//     console.log({
-//       event_id: eventIdNum,
-//       event_id_type: typeof eventIdNum,
-//       unit_code,
-//       unit_code_type: typeof unit_code
-//     });
-
-// // Scan tất cả sự kiện để so sánh giá trị trong bảng
-// const allEvents = await docClient.scan({ TableName: 'events' }).promise();
-// console.log('📋 Danh sách sự kiện hiện có:');
-// allEvents.Items.forEach(item => {
-//   console.log({
-//     db_event_id: item.event_id,
-//     db_event_id_type: typeof item.event_id,
-//     db_unit_code: item.unit_code,
-//     db_unit_code_type: typeof item.unit_code
-//   });
-// });
-
-// // Truy vấn chính xác 1 sự kiện
-//   const eventRes = await docClient.get({
-//     TableName: 'events',
-//     Key: {
-//       event_id: eventIdNum,
-//       unit_code: unit_code.trim()
-//     }
-//   }).promise();
-
-//   if (!eventRes.Item) {
-//     console.warn('⚠️ Không tìm thấy sự kiện phù hợp với:', {
-//       event_id: eventIdNum,
-//       unit_code: unit_code
-//     });
-//     return res.status(404).json({
-//       success: false,
-//       eligible: false,
-//       reason: 'Không tìm thấy sự kiện.',
-//     });
-//   }
-
-
 
     const event = eventRes.Item;
     console.log('✅ Sự kiện tìm thấy:', event);
@@ -296,5 +352,32 @@ exports.getAllRegistrationsWithDetails = async (req, res) => {
       message: 'Lỗi lấy danh sách đăng ký đầy đủ.',
       error: err.message || err
     });
+  }
+};
+
+exports.deleteRegistration = async (req, res) => {
+  const { user_code, event_id } = req.params;
+
+  if (!user_code || !event_id) {
+    return res.status(400).json({ success: false, message: 'Thiếu user_code hoặc event_id' });
+  }
+
+  const params = {
+    TableName: 'registrations',
+    Key: {
+      user_code: user_code,
+      event_id: Number(event_id),
+    }
+  };
+
+  try {
+    await docClient.delete(params).promise();
+    return res.json({
+      success: true,
+      message: `Xoá đăng ký thành công cho user ${user_code} và event ${event_id}`
+    });
+  } catch (err) {
+    console.error('❌ Lỗi deleteRegistration:', err);
+    return res.status(500).json({ success: false, message: 'Lỗi xoá đăng ký', error: err.message });
   }
 };

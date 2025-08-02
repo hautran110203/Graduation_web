@@ -8,7 +8,10 @@ router.post('/', registrationCtrl.registerForEvent);
 
 // (Tuỳ chọn) Lấy danh sách đăng ký
 router.get('/', auth,registrationCtrl.getRegistrations);
-
 router.get('/check-registration/:user_code/:event_id/:unit_code', registrationCtrl.checkRegistrationEligibility);
 router.get('/getAll',registrationCtrl.getAllRegistrationsWithDetails)
+router.delete('/:user_code/:event_id', registrationCtrl.deleteRegistration);
+router.post('/avatar', registrationCtrl.uploadAvatar);
+router.put('/:event_id/update', registrationCtrl.updateAvatar);
+
 module.exports = router;

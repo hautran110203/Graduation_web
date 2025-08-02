@@ -24,7 +24,6 @@ const SignupForm: React.FC = () => {
     setErrorMessage('');
 
     try {
-      // 🧹 Xoá session cũ trước khi đăng nhập
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       delete axios.defaults.headers.common['Authorization'];
@@ -34,19 +33,14 @@ const SignupForm: React.FC = () => {
         password: data.password,
       });
 
-      // ✅ Lưu lại session mới
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
 
       const role = res.data.user.role;
-      if (role === 'admin') {
-        navigate('/admin');
-      } else if (role === 'admin_unit') {
-        navigate('/adminunit');
-      } else {
-        navigate('/home');
-      }
+      if (role === 'admin') navigate('/admin');
+      else if (role === 'admin_unit') navigate('/adminunit');
+      else navigate('/home');
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Đăng nhập thất bại');
     } finally {
@@ -59,31 +53,42 @@ const SignupForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-sm mx-auto p-6 bg-white rounded shadow">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="w-full max-w-md mx-auto p-4 sm:p-6 bg-white rounded-lg shadow-md"
+    >
       <div className="mb-4">
-        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Mã số</label>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          Mã số
+        </label>
         <input
           type="text"
           id="name"
-          {...register("name", { required: "Bạn chưa nhập mã số" })}
+          {...register('name', { required: 'Bạn chưa nhập mã số' })}
           className={`mt-1 block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
             errors.name ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>}
+        {errors.name && (
+          <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+        )}
       </div>
 
       <div className="mb-4">
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">Mật khẩu</label>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          Mật khẩu
+        </label>
         <input
           type="password"
           id="password"
-          {...register("password", { required: "Bạn chưa nhập mật khẩu" })}
+          {...register('password', { required: 'Bạn chưa nhập mật khẩu' })}
           className={`mt-1 block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:outline-none ${
             errors.password ? 'border-red-500' : 'border-gray-300'
           }`}
         />
-        {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>}
+        {errors.password && (
+          <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
+        )}
       </div>
 
       {errorMessage && <p className="text-red-600 text-sm mb-3">{errorMessage}</p>}
