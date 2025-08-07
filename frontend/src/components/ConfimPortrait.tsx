@@ -71,28 +71,58 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageSrc(reader.result as string);
-        setIsCropping(true);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  if (e.target.files && e.target.files.length > 0) {
+    const file = e.target.files[0];
+
+    // 🧼 Reset lại trạng thái khi chọn ảnh mới
+    setValidationMessage("");       // Xóa thông báo cũ (lỗi hoặc hợp lệ)
+    setIsImageValid(false);         // Reset trạng thái hợp lệ
+    setCroppedImage(null);          // Xóa ảnh đã crop nếu có
+    setIsUploading(false);          // Reset trạng thái upload
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(reader.result as string); // Load ảnh mới
+      setIsCropping(true);                  // Bật crop mode
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
 
   const handleCrop = async () => {
     if (!imageSrc || !croppedAreaPixels) return;
     setIsUploading(true);
     try {
+      // 1. Cắt ảnh từ crop tool
       const { file, url } = await getCroppedImg(imageSrc, croppedAreaPixels);
-      const formData = new FormData();
-      formData.append("file", file);
+
+      // 2. Gọi API kiểm tra ảnh chân dung (FastAPI)
+      const verifyForm = new FormData();
+      verifyForm.append("file", file);
+
+      const verifyRes = await fetch("http://127.0.0.1:8000/verify-portrait", {
+        method: "POST",
+        body: verifyForm
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || !verifyData.success) {
+        const reason = verifyData.message || "Ảnh không hợp lệ";
+        const details = verifyData.errors?.length ? "\n- " + verifyData.errors.join("\n- ") : "";
+        setValidationMessage(`❌ Ảnh không hợp lệ:\n${reason}${details}`);
+        setIsImageValid(false);
+        return; // 🚫 dừng lại, không upload
+      }
+
+      // 3. Nếu ảnh hợp lệ, gọi API upload ảnh lên backend (Node.js)
+      const uploadForm = new FormData();
+      uploadForm.append("file", file);
 
       const uploadRes = await fetch("http://localhost:3001/registrations/avatar", {
         method: "POST",
-        body: formData,
+        body: uploadForm,
       });
 
       if (!uploadRes.ok) throw new Error("Upload ảnh thất bại");
@@ -102,8 +132,8 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({
 
       setCroppedImage(realImageUrl);
       setIsCropping(false);
-      setValidationMessage("✅ Ảnh đã được xử lý và lưu thành công");
       setIsImageValid(true);
+
     } catch (err) {
       console.error("❌ Lỗi crop/upload:", err);
       setValidationMessage("❌ Lỗi gửi ảnh tới server");
@@ -112,6 +142,7 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({
       setIsUploading(false);
     }
   };
+
 
   const handleCreateRegister = async () => {
     if (!event || !croppedImage) return;
@@ -265,6 +296,28 @@ const ConfirmPortrait: React.FC<ConfirmPortraitProps> = ({
               </button>
             </div>
           )}
+          {isUploading ? (
+            <div className="mt-2 px-3 py-2 rounded text-sm flex items-center gap-2 border border-blue-500 text-blue-600">
+              <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+              </svg>
+              <span>Đang kiểm tra ảnh...</span>
+            </div>
+          ) : (
+            validationMessage && (
+              <div
+                className="mt-2 whitespace-pre-line px-3 py-2 rounded text-sm"
+                style={{
+                  color: isImageValid ? 'green' : 'red',
+                  border: `1px solid ${isImageValid ? 'green' : 'red'}`
+                }}
+              >
+                {validationMessage}
+              </div>
+            )
+          )}
+
 
           {croppedImage && !isCropping && (
             <div className="text-center">

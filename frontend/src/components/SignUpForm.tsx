@@ -38,8 +38,8 @@ const SignupForm: React.FC = () => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
 
       const role = res.data.user.role;
-      if (role === 'admin') navigate('/admin');
-      else if (role === 'admin_unit') navigate('/adminunit');
+      if (role === 'admin') navigate('/admin/unit');
+      else if (role === 'admin_unit') navigate('/adminunit/event');
       else navigate('/home');
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Đăng nhập thất bại');
