@@ -1,0 +1,13 @@
+
+retina-face
+ultralytics
+timm
+git+https://github.com/openai/CLIP.git
+ftfy
+regex
+tqdm
+opencv-python
+torch
+torchvision
+matplotlib
+pillow
