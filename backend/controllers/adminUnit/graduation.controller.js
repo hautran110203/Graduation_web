@@ -13,36 +13,15 @@ exports.getGraduationDetails = async (req, res) => {
     const gradData = await dynamoDb.scan({ TableName: APPROVE_TABLE }).promise();
     const grads = gradData.Items || [];
 
-    // 2. Lấy danh sách user_code và unit_code duy nhất
-    const userCodes = grads.map(g => g.user_code);
-    const unitCodes = [...new Set(grads.map(g => g.unit_code))];
-
     if (!Array.isArray(grads)) {
       console.error('❌ grads không phải mảng:', gradData);
       return res.status(500).json({ error: 'Dữ liệu không hợp lệ' });
     }
 
-    // 3. Lấy thông tin user
-    const userBatches = [];
-    while (userCodes.length) userBatches.push(userCodes.splice(0, 100));
+    // 2. Lấy danh sách đơn vị duy nhất
+    const unitCodes = [...new Set(grads.map(g => g.unit_code))];
 
-    const userResults = await Promise.all(
-      userBatches.map(batch =>
-        dynamoDb.batchGet({
-          RequestItems: {
-            [USERS_TABLE]: {
-              Keys: batch.map(code => ({ user_code: code })),
-              ProjectionExpression: 'user_code, full_name',
-            },
-          },
-        }).promise()
-      )
-    );
-
-    const users = userResults.flatMap(r => r.Responses[USERS_TABLE]);
-    const userMap = Object.fromEntries(users.map(u => [u.user_code, u.full_name || '']));
-
-    // 4. Lấy thông tin tên đơn vị (unit_name từ name)
+    // 3. Lấy tên đơn vị từ UNITS_TABLE
     const unitBatches = [];
     while (unitCodes.length) unitBatches.push(unitCodes.splice(0, 100));
 
@@ -54,8 +33,8 @@ exports.getGraduationDetails = async (req, res) => {
               Keys: batch.map(code => ({ unit_code: code })),
               ProjectionExpression: 'unit_code, #name',
               ExpressionAttributeNames: {
-              '#name': 'name'
-              }
+                '#name': 'name',
+              },
             },
           },
         }).promise()
@@ -65,18 +44,18 @@ exports.getGraduationDetails = async (req, res) => {
     const units = unitResults.flatMap(r => r.Responses[UNITS_TABLE]);
     const unitMap = Object.fromEntries(units.map(u => [u.unit_code, u.name || u.unit_code]));
 
-    // 5. Gộp dữ liệu
+    // 4. Gộp dữ liệu (không cần full_name từ bảng user nữa)
     const result = grads.map((g, index) => ({
       id: index + 1,
       user_code: g.user_code,
-      full_name: userMap[g.user_code] || '',
+      full_name: g.full_name || '', // lấy trực tiếp từ APPROVE_TABLE
       major: g.major,
       training_time: g.training_time,
       gpa: g.gpa,
       classification: g.classification,
       degree_title: g.degree_title,
       graduation_id: g.graduation_id || '',
-      faculty: unitMap[g.unit_code] || g.unit_code, 
+      faculty: unitMap[g.unit_code] || g.unit_code,
       faculty_code: g.unit_code,
     }));
 
@@ -88,6 +67,7 @@ exports.getGraduationDetails = async (req, res) => {
 };
 
 
+
 // POST /api/graduation/upload
 exports.uploadGraduationList = async (req, res) => {
   try {
@@ -97,7 +77,7 @@ exports.uploadGraduationList = async (req, res) => {
     const rows = XLSX.utils.sheet_to_json(sheet);
 
     const graduation_id = rows[0]?.graduation_id || Date.now();
-    const uploaded_by = req.user?.user_code || 'admin';
+    const uploaded_by = req.user?.user_code || '';
     const created_at = new Date().toISOString();
 
     const savedItems = [];
@@ -106,31 +86,19 @@ exports.uploadGraduationList = async (req, res) => {
       const user_code = row.user_code?.trim();
       if (!user_code) continue;
 
-      const userData = await dynamoDb.get({
-        TableName: USERS_TABLE,
-        Key: { user_code },
-      }).promise();
-
-      const user = userData.Item;
-      if (!user) {
-        console.warn(`⚠️ Không tìm thấy user: ${user_code}`);
-        continue;
-      }
-
       const item = {
         TableName: APPROVE_TABLE,
         Item: {
           user_code,
           graduation_id: Number(graduation_id),
-          unit_code: user.unit_code || '',
+          unit_code: row.unit_code || '',
           uploaded_by,
           created_at,
 
-          email: user.email || '',
-          full_name: user.full_name || '',
+          email: row.email || '',
+          full_name: row.full_name || '',
           major: row.major || '',
-          training_time: row.training_time || '',
-          gpa: parseFloat(row.gpa) || null,
+          gpa: row.gpa !== undefined ? parseFloat(row.gpa) : null,
           classification: row.classification || '',
           degree_title: row.degree_title || '',
         },
@@ -140,7 +108,7 @@ exports.uploadGraduationList = async (req, res) => {
       savedItems.push(user_code);
     }
 
-    fs.unlinkSync(filePath); // dọn file tạm
+    fs.unlinkSync(filePath); // xóa file sau khi xử lý
 
     res.json({
       message: '✅ Upload thành công',
@@ -152,6 +120,7 @@ exports.uploadGraduationList = async (req, res) => {
     res.status(500).json({ error: 'Lỗi xử lý file Excel' });
   }
 };
+
 
 // PUT /api/graduation/students/:user_code
 exports.updateStudent = async (req, res) => {

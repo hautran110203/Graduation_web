@@ -255,6 +255,7 @@ const EventPresentationUI: React.FC = () => {
           <ControllerPopup
             slides={slideList.map(mapStudentToSlide)}
             bgImage={selectedEvent?.slide_template_url}
+            onClose={() => setShowController(false)}
             
           />
         )}

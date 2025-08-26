@@ -11,9 +11,9 @@ const HomePage: React.FC = () => (
     <HeroSection />
     <AboutSection/>
     <UpcomingEventCarousel/>
-    <FeatureCards />
-    <StatsSection />
-    <ImagePlaceholder />
+    {/* <FeatureCards /> */}
+    {/* <StatsSection />
+    <ImagePlaceholder /> */}
 
   </>
 );

@@ -26,6 +26,7 @@ import LocationListPage from './pages/Admin/LocationListPage';
 import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
 import PresentationWindow from './components/ppt/PresentationWindow';
 import RequireRole from './components/RequireRole';
+import UserProfilePage from './pages/UserProfile.tsx';
 const token = localStorage.getItem("token");
 if (token) {
   axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -48,51 +49,18 @@ function App() {
     }
   }, []); 
   return (
-    // <Router>
-    //   <Routes>
-    //     {/* ✅ Redirect root path đến login nếu chưa có token */}
-    //     <Route path="/" element={<Navigate to="/login" />} />
-    //     {/* Layout không có Header/Footer (dùng cho login và trình chiếu) */}
-    //     <Route element={<AuthLayout />}>
-    //       <Route path="/login" element={<SignUpPage />} />
-    //       <Route path="/presentation" element={<PresentationWindow />} />
-    //     </Route>
-
-    //     {/* Các trang cần xác thực */}
-    //     <Route element={<RequireAuth><DefaultLayout/></RequireAuth>}>
-    //       <Route path="/home" element={<HomePage />} />
-    //       <Route path="/events" element={<EventPage />} />
-    //       <Route path="/events/:unit_code/:event_id" element={<EventDetailsPage />} />
-    //       <Route path="/events/confirm" element={<RegisterPage />} />
-    //       <Route path="/myevent" element={<MyRegistrationsPage />} />
-
-    //       {/* Admin Unit */}
-    //       <Route path="/adminunit/event" element={<AdminUnitLayout><EventListAdminUnit /></AdminUnitLayout>} />
-    //       <Route path="/adminunit/graduation" element={<AdminUnitLayout><GraduationPage /></AdminUnitLayout>} />
-    //       <Route path="/adminunit/form" element={<AdminUnitLayout><RegistrationListPage /></AdminUnitLayout>} />
-    //       <Route path="/adminunit" element={<AdminUnitLayout><AdminOverviewPage /></AdminUnitLayout>} />
-    //       <Route path="/adminunit/ppt" element={<AdminUnitLayout><EventPresentationUI /></AdminUnitLayout>} />
-
-    //       {/* Admin */}
-    //       <Route path="/admin" element={<AdminLayout><AdminDashboardPage /></AdminLayout>} />
-    //       <Route path="/admin/acc" element={<AdminLayout><AdminUnitAccountPage /></AdminLayout>} />
-    //       <Route path="/admin/unit" element={<AdminLayout><TrainingUnitPage /></AdminLayout>} />
-    //       <Route path="/admin/event-summary" element={<AdminLayout><EventStatisticsPage /></AdminLayout>} />
-    //       <Route path="/admin/locations" element={<AdminLayout><LocationListPage /></AdminLayout>} />
-    //     </Route>
-    //   </Routes>
-
-    //   <ToastContainer position="top-right" autoClose={3000} />
-    // </Router>
+  
     <Router>
       <Routes>
         {/* ✅ Redirect root path đến login nếu chưa có token */}
         <Route path="/" element={<Navigate to="/login" />} />
-
+        <Route path="/register" element={<Navigate to="/login" />} />
+        
         {/* Layout không có Header/Footer (dùng cho login và trình chiếu) */}
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<SignUpPage />} />
           <Route path="/presentation" element={<PresentationWindow />} />
+          {/* <Route path="/register" element={Re/>} /> */}
         </Route>
 
         {/* Các trang cần xác thực */}
@@ -122,6 +90,9 @@ function App() {
             element={<RequireRole allowedRoles={['student']}><MyRegistrationsPage /></RequireRole>
             }
           />
+          <Route path="/profile" 
+            element={<RequireRole allowedRoles={['student']}><UserProfilePage /></RequireRole>} />
+          
 
           {/* Admin Unit */}
           <Route

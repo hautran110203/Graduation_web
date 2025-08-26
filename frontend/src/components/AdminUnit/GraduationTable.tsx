@@ -86,7 +86,6 @@ const GraduationTable: React.FC<Props> = ({ students, onDelete, onEdit }) => {
               <th className="p-2 whitespace-nowrap">Tên SV</th>
               <th className="p-2 whitespace-nowrap">Số quyết định</th>
               <th className="p-2 whitespace-nowrap">Ngành</th>
-              <th className="p-2 whitespace-nowrap">Thời gian đào tạo</th>
               <th className="p-2 whitespace-nowrap">GPA</th>
               <th className="p-2 whitespace-nowrap">Xếp loại</th>
               <th className="p-2 whitespace-nowrap">Danh hiệu</th>
@@ -94,7 +93,7 @@ const GraduationTable: React.FC<Props> = ({ students, onDelete, onEdit }) => {
           </thead>
           <tbody>
             {students.map((s) => (
-              <tr key={s.user_code} className="bg-white shadow-sm hover:shadow-md rounded">
+              <tr key={`${s.user_code}-${s.graduation_id}`} className="bg-white shadow-sm hover:shadow-md rounded">
                 <td className="p-2">
                   <input
                     type="checkbox"
@@ -106,7 +105,6 @@ const GraduationTable: React.FC<Props> = ({ students, onDelete, onEdit }) => {
                 <td className="p-2 whitespace-nowrap">{s.full_name}</td>
                 <td className="p-2 whitespace-nowrap">{s.graduation_id}</td>
                 <td className="p-2 whitespace-nowrap">{s.major}</td>
-                <td className="p-2 whitespace-nowrap">{s.training_time}</td>
                 <td className="p-2 whitespace-nowrap">{s.gpa.toFixed(2)}</td>
                 <td className="p-2 whitespace-nowrap">{s.classification}</td>
                 <td className="p-2 whitespace-nowrap">{s.degree_title}</td>

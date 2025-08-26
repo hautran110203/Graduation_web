@@ -14,7 +14,7 @@ const GraduationUpload: React.FC<Props> = ({ onUploadSuccess }) => {
     formData.append('file', file);
 
     try {
-      const res = await fetch('http://localhost:3001/graduation/uploads', {
+      const res = await fetch('http://localhost:3001/graduation/upload', {
         method: 'POST',
         body: formData,
       });

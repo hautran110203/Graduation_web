@@ -57,17 +57,6 @@ const EditStudentModal: React.FC<Props> = ({ isOpen, student, onClose, onSave })
           </div>
 
           <div>
-            <label className="block font-medium">Thời gian đào tạo</label>
-            <input
-              type="text"
-              name="training_time"
-              value={formData.training_time}
-              onChange={handleChange}
-              className="border rounded px-2 py-1 w-full"
-            />
-          </div>
-
-          <div>
             <label className="block font-medium">GPA</label>
             <input
               type="number"

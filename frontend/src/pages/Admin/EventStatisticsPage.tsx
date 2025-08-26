@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -39,18 +39,25 @@ const EventStatisticsPage: React.FC = () => {
     });
   }, []);
 
-  const filteredEvents = events.filter((e) => {
-    const isAfterFrom = !fromDate || new Date(e.start_time) >= new Date(fromDate);
-    const isBeforeTo = !toDate || new Date(e.start_time) <= new Date(toDate);
-    const isSameUnit = !unitFilter || e.unit_code === unitFilter;
-    return isAfterFrom && isBeforeTo && isSameUnit;
-  });
+  // LỌC SỰ KIỆN THEO NGÀY + MÃ ĐƠN VỊ
+  const filteredEvents = useMemo(() => {
+    return events.filter((e) => {
+      const isAfterFrom = !fromDate || new Date(e.start_time) >= new Date(fromDate);
+      const isBeforeTo = !toDate || new Date(e.start_time) <= new Date(toDate);
+      const isSameUnit = !unitFilter || e.unit_code === unitFilter;
+      return isAfterFrom && isBeforeTo && isSameUnit;
+    });
+  }, [events, fromDate, toDate, unitFilter]);
 
+  // TÍNH unitStats CHỈ TỪ filteredEvents
   useEffect(() => {
     const map: Record<string, number> = {};
-    const eventMap = Object.fromEntries(events.map((e) => [e.event_id, e]));
+    // chỉ dùng event trong khoảng đã lọc
+    const eventMap = Object.fromEntries(filteredEvents.map((e) => [e.event_id, e]));
+    const filteredEventIds = new Set(filteredEvents.map(e => e.event_id));
 
     registrations.forEach((r) => {
+      if (!filteredEventIds.has(r.event_id)) return; // bỏ qua các đăng ký không thuộc sự kiện đã lọc
       const event = eventMap[r.event_id];
       if (!event || !event.unit_code) return;
       const code = event.unit_code;
@@ -64,7 +71,7 @@ const EventStatisticsPage: React.FC = () => {
     }));
 
     setUnitStats(stats);
-  }, [events, registrations, unitMap]);
+  }, [filteredEvents, registrations, unitMap]);
 
   const handleExportExcel = () => {
     const exportData = filteredEvents.map((e, i) => ({
@@ -138,7 +145,7 @@ const EventStatisticsPage: React.FC = () => {
             dataKey="count"
             fill="#3b82f6"
             onClick={(entry: any) => {
-              setUnitFilter(entry.payload.code);
+              setUnitFilter(entry.payload.code); // click để lọc theo đơn vị vẫn hoạt động
             }}
           />
         </BarChart>

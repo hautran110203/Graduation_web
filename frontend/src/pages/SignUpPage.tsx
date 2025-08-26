@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SignUpForm from '../components/SignUpForm';
+import RegisterForm from '../components/RegisterForm'; // Import thêm
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { HandPeace } from '@phosphor-icons/react';
 
 const SignUpPage: React.FC = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
+
   return (
     <div className="container-fluid bg-white">
       <div className="row min-vh-100">
@@ -19,11 +22,36 @@ const SignUpPage: React.FC = () => {
               <p className="text-muted">Hệ thống đăng ký tốt nghiệp Đại học Cần Thơ.</p>
             </div>
 
-            <SignUpForm />
+            {isRegistering ? <RegisterForm /> : <SignUpForm />}
+
+            {/* Toggle giữa login / register */}
+            <div className="text-center mt-4">
+              {isRegistering ? (
+                <>
+                  <span className="text-muted">Đã có tài khoản? </span>
+                  <button
+                    className="btn btn-link text-primary p-0"
+                    onClick={() => setIsRegistering(false)}
+                  >
+                    Đăng nhập
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="text-muted">Chưa có tài khoản? </span>
+                  <button
+                    className="btn btn-link text-primary p-0"
+                    onClick={() => setIsRegistering(true)}
+                  >
+                    Đăng ký ngay
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right panel (Logo) - Chỉ hiện trên desktop */}
+        {/* Right panel (Logo) */}
         <div className="col-md-6 d-none d-md-flex align-items-center justify-content-center bg-light">
           <img src="/icon/CTU_logo.png" alt="Logo CTU" width={300} className="img-fluid" />
         </div>

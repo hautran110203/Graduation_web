@@ -66,13 +66,6 @@ const CreateOrEditUnitPopup: React.FC<Props> = ({ onClose, onSubmit, initialData
           onChange={(e) => setUnitName(e.target.value)}
           className="w-full border px-3 py-2 rounded"
         />
-        <div>
-          <label className="block text-sm font-medium mb-1">Logo đơn vị</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} />
-          {previewUrl && (
-            <img src={previewUrl} alt="preview" className="mt-2 h-20 object-contain rounded border" />
-          )}
-        </div>
         <div className="flex justify-end gap-2 pt-2">
           <button className="px-4 py-2 bg-gray-300 rounded" onClick={onClose}>Huỷ</button>
           <button className="px-4 py-2 bg-blue-600 text-white rounded" onClick={handleSubmit}>

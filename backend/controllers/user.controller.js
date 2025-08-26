@@ -6,7 +6,8 @@ const bcrypt = require('bcryptjs');
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 const TABLE = 'users';
-
+const USERS_TABLE = 'users';
+const APPROVE_TABLE = 'graduation_approved'
 // =================== AUTH ===================
 
 // Đăng nhập
@@ -67,29 +68,63 @@ exports.getCurrentUser = async (req, res) => {
 // =================== USERS CRUD ===================
 
 // Tạo người dùng
-exports.createUser = (req, res) => {
-  const { user_code, full_name, email, avatar_url, role } = req.body;
+exports.createUser =  async (req, res) => {
+  const { user_code, graduation_id, password, avatar_url } = req.body;
 
-  if (!user_code || !full_name || !email) {
+  if (!user_code || !graduation_id || !password) {
     return res.status(400).json({ error: 'Thiếu thông tin bắt buộc' });
   }
 
-  const params = {
-    TableName: TABLE,
-    Item: {
-      user_code,
-      full_name,
-      email,
-      avatar_url: avatar_url || null,
-      role: role || 'student',
-      created_at: new Date().toISOString()
-    }
-  };
+  try {
+    // 1. Kiểm tra người dùng đã tồn tại chưa
+    const existing = await docClient.get({
+      TableName: USERS_TABLE,
+      Key: { user_code }
+    }).promise();
 
-  docClient.put(params, err => {
-    if (err) return res.status(500).json({ error: err });
-    res.json({ message: 'Tạo người dùng thành công', user_code });
-  });
+    if (existing.Item) {
+      return res.status(409).json({ error: 'Tài khoản đã tồn tại' });
+    }
+
+    // 2. Kiểm tra user_code + graduation_id có trong bảng APPROVE không
+    const approveCheck = await docClient.get({
+      TableName: APPROVE_TABLE,
+      Key: {
+        user_code,
+        graduation_id: Number(graduation_id)
+      }
+    }).promise();
+
+    const approveItem = approveCheck.Item;
+    if (!approveItem) {
+      return res.status(403).json({ error: 'Không tìm thấy thông tin xét duyệt tương ứng' });
+    }
+
+    // 3. Mã hóa mật khẩu
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 4. Tạo user mới từ thông tin trong bảng approve
+    const newUser = {
+      user_code,
+      password: hashedPassword,
+      avatar_url: avatar_url || null,
+      email: approveItem.email || '',
+      full_name: approveItem.full_name || '',
+      unit_code: approveItem.unit_code || '',
+      role: 'student',
+      created_at: new Date().toISOString(),
+    };
+
+    await docClient.put({
+      TableName: USERS_TABLE,
+      Item: newUser,
+    }).promise();
+
+    res.json({ message: 'Tạo tài khoản thành công', user_code });
+  } catch (err) {
+    console.error('Lỗi tạo user:', err);
+    res.status(500).json({ error: 'Lỗi máy chủ' });
+  }
 };
 
 // Lấy tất cả người dùng
@@ -128,33 +163,7 @@ exports.getUser = (req, res) => {
   });
 };
 
-// Cập nhật người dùng
-// exports.updateUser = (req, res) => {
-//   const { user_code } = req.params;
-//   const { full_name, email, avatar_url, role } = req.body;
-//   console.log('[📥] Yêu cầu cập nhật người dùng:', { user_code, role });
-//   if (!role) {
-//     console.warn('[⚠️] Thiếu trường role trong body');
-//     return res.status(400).json({ error: 'Thiếu trường role để cập nhật' });
-//   }
-//   const params = {
-//     TableName: TABLE,
-//     Key: { user_code },
-//     UpdateExpression: 'set full_name = :f, email = :e, avatar_url = :a, role = :r',
-//     ExpressionAttributeValues: {
-//       ':f': full_name,
-//       ':e': email,
-//       ':a': avatar_url,
-//       ':r': role
-//     },
-//     ReturnValues: 'ALL_NEW'
-//   };
 
-//   docClient.update(params, (err, data) => {
-//     if (err) return res.status(500).json({ error: 'Cập nhật thất bại' });
-//     res.json({ message: 'Cập nhật thành công', updated: data.Attributes });
-//   });
-// };
 exports.updateUser = (req, res) => {
   const { user_code } = req.params;
   const { full_name, email, avatar_url, role, unit_code } = req.body;

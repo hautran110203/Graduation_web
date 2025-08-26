@@ -53,10 +53,11 @@ const EditUserRolePopup: React.FC<Props> = ({ onClose, onSubmit, initialData }) 
         {/* Chọn vai trò */}
         <div>
           <label className="block text-sm font-medium mb-1">Vai trò mới</label>
-          <div className="space-y-1">
+          <div className="flex items-center gap-2 sm:gap-4">
             {roleOptions.map((r) => (
               <label key={r} className="flex items-center gap-2">
                 <input
+                  
                   type="radio"
                   name="role"
                   value={r}

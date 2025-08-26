@@ -18,43 +18,45 @@ const s3 = new AWS.S3();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// ✅ Middleware xử lý upload từ field 'file'
+
+const verifyToken = require('../middlewares/auth.middleware');
 exports.uploadAvatar = [
+  verifyToken, // ⬅️ Middleware xác thực token JWT
   upload.single('file'),
   async (req, res) => {
     try {
       const file = req.file;
+      const user_code = req.user?.user_code; // ⬅️ Lấy user_code từ token đã decode
+
       if (!file) {
         return res.status(400).json({ success: false, error: 'Thiếu file ảnh' });
       }
 
-      const ext = path.extname(file.originalname);
-      const key = `avatars/${uuidv4()}${ext}`;
+      if (!user_code) {
+        return res.status(400).json({ success: false, error: 'Thiếu user_code trong token' });
+      }
 
-      // ✅ Upload lên S3
+      const ext = path.extname(file.originalname);
+      const key = `avatars/${user_code}${ext}`; // 🔑 Đặt tên file theo user_code
+
       const params = {
         Bucket: BUCKET_NAME,
         Key: key,
         Body: file.buffer,
         ContentType: file.mimetype,
-        ACL: 'public-read', // Để ảnh public URL
+        ACL: 'public-read',
       };
 
       await s3.upload(params).promise();
-      const imageUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
 
-      return res.status(200).json({
-        success: true,
-        message: 'Upload ảnh thành công',
-        imageUrl,
-      });
+      const imageUrl = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+      return res.status(200).json({ success: true, imageUrl });
     } catch (err) {
       console.error('❌ Upload thất bại:', err);
       return res.status(500).json({ success: false, error: 'Lỗi khi upload ảnh' });
     }
-  },
+  }
 ];
-
 exports.updateAvatar = async (req, res) => {
   const { event_id } = req.params;
   console.log(event_id)
@@ -266,6 +268,44 @@ exports.checkRegistrationEligibility = async (req, res) => {
       });
     }
 
+    let alreadyRegistered = false;
+    try {
+      const dupQuery = await docClient.query({
+        TableName: 'registrations',
+        IndexName: 'event_id-user_code-index', // ← đổi đúng tên GSI của bạn
+        KeyConditionExpression: 'event_id = :e AND user_code = :u',
+        ExpressionAttributeValues: {
+          ':e': eventIdNum,
+          ':u': user_code
+        },
+        ProjectionExpression: 'registration_id', // chỉ cần id là đủ
+        Limit: 1
+      }).promise();
+
+      alreadyRegistered = (dupQuery?.Count ?? 0) > 0;
+    } catch (gsiErr) {
+      console.warn('⚠️ Không query được GSI, fallback sang scan (không khuyến nghị):', gsiErr?.message);
+      // Fallback: nếu chưa có GSI, dùng scan (chỉ nên tạm thời)
+      const dupScan = await docClient.scan({
+        TableName: 'registrations',
+        FilterExpression: 'event_id = :e AND user_code = :u',
+        ExpressionAttributeValues: {
+          ':e': eventIdNum,
+          ':u': user_code
+        },
+        ProjectionExpression: 'registration_id'
+      }).promise();
+      alreadyRegistered = (dupScan?.Count ?? dupScan?.Items?.length ?? 0) > 0;
+    }
+
+    if (alreadyRegistered) {
+      return res.status(409).json({
+        success: false,
+        eligible: false,
+        reason: 'already_registered',
+        message: 'Bạn đã đăng ký sự kiện này rồi.',
+      });
+    }
     // ✅ Đủ điều kiện đăng ký
     return res.status(200).json({
       success: true,

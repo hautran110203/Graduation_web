@@ -6,6 +6,7 @@ import {
   HiOutlineChartBar,
   HiOutlineLocationMarker,
   HiX,
+  HiOutlineHome,
 } from 'react-icons/hi';
 
 interface SidebarProps {
@@ -24,14 +25,14 @@ const AdminSidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
 
   const menuItems = [
     { label: 'Đơn vị đào tạo', icon: <HiOutlineOfficeBuilding className="w-5 h-5" />, path: '/admin/unit' },
-    { label: 'Tài khoản đơn vị', icon: <HiOutlineUserGroup className="w-5 h-5" />, path: '/admin/acc' },
+    { label: 'Tài khoản ', icon: <HiOutlineUserGroup className="w-5 h-5" />, path: '/admin/acc' },
     { label: 'Sự kiện & thống kê', icon: <HiOutlineChartBar className="w-5 h-5" />, path: '/admin/event-summary' },
     { label: 'Địa điểm tổ chức', icon: <HiOutlineLocationMarker className="w-5 h-5" />, path: '/admin/locations' },
     ...(role === 'admin'
       ? [
           {
             label: 'Chuyển sang đơn vị đào tạo',
-            icon: <HiOutlineLocationMarker className="w-5 h-5" />,
+            icon: <HiOutlineHome className="w-5 h-5" />,
             path: '/adminunit/event',
           },
         ]

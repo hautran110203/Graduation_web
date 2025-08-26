@@ -6,6 +6,8 @@ import {
   HiOutlineDocumentText,
   HiMenu,
   HiX,
+  HiOutlineHome,
+  HiOutlinePresentationChartBar,
 } from 'react-icons/hi';
 
 interface SidebarProps {
@@ -40,14 +42,14 @@ const AdminSidebar: React.FC<SidebarProps> = ({ open, setOpen }) => {
     },
     {
       label: 'Trình chiếu',
-      icon: <HiOutlineDocumentText className="w-5 h-5" />,
+      icon: <HiOutlinePresentationChartBar className="w-5 h-5" />,
       path: '/adminunit/ppt',
     },
     ...(role === 'admin'
       ? [
           {
             label: 'Chuyển về hệ thống',
-            icon: <HiOutlineDocumentText className="w-5 h-5" />,
+            icon: <HiOutlineHome className="w-5 h-5" />,
             path: '/admin/acc',
           },
         ]
